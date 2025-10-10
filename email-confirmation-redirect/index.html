@@ -114,7 +114,7 @@
       const currentUrl = window.location.href;
       console.log('Current URL:', currentUrl);
       
-      // Extract hash parameters
+      // Extract hash parameters (from #)
       const hashIndex = currentUrl.indexOf('#');
       if (hashIndex === -1) {
         console.error('No hash parameters found in URL');
@@ -134,10 +134,16 @@
       // Parse parameters to validate
       const params = new URLSearchParams(hashParams);
       const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const tokenType = params.get('token_type');
+      const expiresIn = params.get('expires_in');
       const type = params.get('type');
       
       console.log('Validation check:', {
         hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        tokenType: tokenType,
+        expiresIn: expiresIn,
         type: type
       });
       
@@ -151,20 +157,21 @@
         return;
       }
       
-      // Construct deep link
+      // Construct deep link - convert hash params to query params for deep linking
       const appDeepLink = `felcolinkpersist://email-confirmation?${hashParams}`;
       console.log('App deep link:', appDeepLink);
       
       // Set up manual fallback
       document.getElementById('manualLink').href = appDeepLink;
       
-      // Show success and redirect
+      // Show success and redirect to app
       showSuccess();
       window.location.href = appDeepLink;
       
       // Show fallback if app doesn't open
       setTimeout(() => {
         if (!document.hidden) {
+          console.log('App may not have opened, showing fallback...');
           showManualFallback();
         }
       }, 2000);
@@ -199,8 +206,18 @@
       document.getElementById('manualFallback').style.display = 'block';
     }
     
+    // Start with loading state
+    showLoading();
+    
     // Start processing when page loads
     window.addEventListener('load', processEmailVerification);
+    
+    // Handle visibility change to detect if app opened
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        console.log('Page hidden - app likely opened successfully');
+      }
+    });
   </script>
 </body>
 </html>
