@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email Confirmed - Felcolink</title>
+  <title>Email Verification - FelcoLink</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -21,69 +21,101 @@
       padding: 2rem;
       border-radius: 1rem;
       backdrop-filter: blur(10px);
-      max-width: 400px;
+      max-width: 500px;
     }
-    .button {
-      display: inline-block;
-      background: #1a73e8;
-      color: white;
-      padding: 12px 24px;
-      text-decoration: none;
+    .loading {
+      margin: 20px 0;
+    }
+    .success {
+      display: none;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 1rem;
       border-radius: 8px;
       margin: 1rem 0;
-      font-weight: 600;
-      transition: background 0.3s;
-    }
-    .button:hover {
-      background: #0d5bba;
     }
   </style>
   <script>
-    window.onload = function() {
-      console.log('Email confirmation page loaded');
-      
-      // Try to open the app immediately
-      const appDeepLink = "felcolinkpersist://email-confirmed";
-      console.log('Attempting to open:', appDeepLink);
-      window.location.href = appDeepLink;
-      
-      // Fallback: show message if app doesn't open
-      setTimeout(() => {
-        if (!document.hidden) {
-          console.log('App not opened, showing fallback');
-          document.getElementById("fallback").style.display = "block";
-        }
-      }, 2000);
+    // Get the token from URL parameters
+    function getParameterByName(name, url = window.location.href) {
+      name = name.replace(/[\[\]]/g, '\\$&');
+      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+      const results = regex.exec(url);
+      if (!results) return null;
+      if (!results[2]) return '';
+      return decodeURIComponent(results[2].replace(/\+/g, ' '));
     }
-    
-    // Alternative manual open function
-    function openApp() {
-      const appDeepLink = "felcolinkpersist://email-confirmed";
-      window.location.href = appDeepLink;
+
+    async function verifyEmail() {
+      const token = getParameterByName('token');
+      const type = getParameterByName('type');
       
-      setTimeout(() => {
-        document.getElementById("fallback").style.display = "block";
-      }, 1000);
+      if (!token) {
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+
+      try {
+        // Call Supabase verification endpoint via GitHub Pages (no Supabase URL visible)
+        const response = await fetch(`https://wptwecrgylbjcsrndeob.supabase.co/auth/v1/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: token,
+            type: type || 'signup'
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Email verified successfully
+          document.getElementById('success').style.display = 'block';
+          document.getElementById('loading').style.display = 'none';
+          
+          // Redirect to app after successful verification
+          setTimeout(() => {
+            window.location.href = 'felcolinkpersist://email-confirmed';
+          }, 2000);
+        } else {
+          throw new Error(data.msg || 'Verification failed');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    window.onload = function() {
+      verifyEmail();
     }
   </script>
 </head>
 <body>
   <div class="container">
-    <h1>🎉 Email Confirmed!</h1>
-    <p>Your email has been successfully verified.</p>
-    <p>Redirecting you back to Felcolink...</p>
+    <h1>🎉 Verifying Your Email</h1>
     
-    <a href="felcolinkpersist://email-confirmed" class="button" onclick="openApp()">
-      Open Felcolink App
-    </a>
-    
-    <div id="fallback" style="display: none; margin-top: 1rem;">
-      <p>If the app didn't open automatically:</p>
-      <ol style="text-align: left; display: inline-block;">
-        <li>Make sure you have the Felcolink app installed</li>
-        <li>Tap the button above</li>
-        <li>Or open the app manually</li>
-      </ol>
+    <div id="loading" class="loading">
+      <p>Please wait while we verify your email address...</p>
+      <div style="margin: 20px 0;">⏳</div>
+    </div>
+
+    <div id="success" class="success">
+      <h2>✅ Email Verified Successfully!</h2>
+      <p>Your email has been confirmed. Redirecting you to FelcoLink...</p>
+    </div>
+
+    <div id="error" style="display: none; background: rgba(255, 0, 0, 0.2); padding: 1rem; border-radius: 8px;">
+      <h2>❌ Verification Failed</h2>
+      <p>There was an issue verifying your email. The link may have expired or is invalid.</p>
+      <p>Please try registering again or contact support if the issue persists.</p>
+    </div>
+
+    <div style="margin-top: 2rem; font-size: 14px; opacity: 0.8;">
+      <p>If you're not redirected automatically, <a href="felcolinkpersist://email-confirmed" style="color: #fff; text-decoration: underline;">click here to open FelcoLink</a></p>
     </div>
   </div>
 </body>
