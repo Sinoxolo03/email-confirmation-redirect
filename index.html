@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Confirmed</title>
+  <script>
+    // Redirect to your app deep link
+    window.onload = function() {
+      window.location.href = "felcolinkpersist://auth-callback";
+      
+      // Fallback message if app doesn't open automatically
+      setTimeout(() => {
+        document.getElementById("fallback").style.display = "block";
+      }, 2000);
+    }
+  </script>
+</head>
+<body style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+  <div>
+    <h1>Email Confirmed!</h1>
+    <p>If your app didn’t open automatically, <a href="felcolinkpersist://auth-callback">click here</a>.</p>
+    <p id="fallback" style="display: none;">Please open this page on your phone to continue.</p>
+  </div>
+</body>
+</html>
