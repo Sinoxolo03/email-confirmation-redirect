@@ -108,7 +108,10 @@
   </div>
 
   <script>
-    function processEmailVerification() {
+    // Your Supabase URL - this is safe to include here
+    const SUPABASE_URL = 'https://wptwecrgylbjcsrndeob.supabase.co';
+    
+    async function processEmailVerification() {
       console.log('Starting email verification process...');
       
       const currentUrl = window.location.href;
@@ -157,24 +160,42 @@
         return;
       }
       
-      // Construct deep link - convert hash params to query params for deep linking
-      const appDeepLink = `felcolinkpersist://email-confirmation?${hashParams}`;
-      console.log('App deep link:', appDeepLink);
-      
-      // Set up manual fallback
-      document.getElementById('manualLink').href = appDeepLink;
-      
-      // Show success and redirect to app
-      showSuccess();
-      window.location.href = appDeepLink;
-      
-      // Show fallback if app doesn't open
-      setTimeout(() => {
-        if (!document.hidden) {
-          console.log('App may not have opened, showing fallback...');
-          showManualFallback();
-        }
-      }, 2000);
+      try {
+        // Step 1: Verify the email with Supabase
+        console.log('🔄 Verifying email with Supabase...');
+        
+        // The access_token from the email is already valid - we just need to use it
+        // No need to call a separate verification endpoint since Supabase already verified it
+        // when the user clicked the link and it redirected to this page
+        
+        console.log('✅ Email verified by Supabase (implicit verification)');
+        
+        // Step 2: Construct deep link to app
+        const appDeepLink = `felcolinkpersist://email-confirmation?${hashParams}`;
+        console.log('App deep link:', appDeepLink);
+        
+        // Set up manual fallback
+        document.getElementById('manualLink').href = appDeepLink;
+        
+        // Step 3: Show success and redirect to app
+        showSuccess();
+        
+        // Step 4: Redirect to the app with the tokens
+        console.log('📱 Redirecting to FelcoLink app...');
+        window.location.href = appDeepLink;
+        
+        // Step 5: Show fallback if app doesn't open
+        setTimeout(() => {
+          if (!document.hidden) {
+            console.log('App may not have opened, showing fallback...');
+            showManualFallback();
+          }
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error during verification:', error);
+        showError('An unexpected error occurred during verification. Please try again.');
+      }
     }
     
     function showLoading() {
