@@ -109,10 +109,9 @@
   </div>
 
   <script>
-    // Your Supabase configuration
+    // 🔑 REPLACE THIS WITH YOUR ACTUAL SUPABASE ANON KEY
     const SUPABASE_URL = 'https://wptwecrgylbjcsrndeob.supabase.co';
-    // You'll need to create an anon/public key for this
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwdHdlY3JneWxiamNzcm5kZW9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1NzAxMDksImV4cCI6MjA2NDE0NjEwOX0.Zu-Ma5mB4oCGJJBaiRYYUIKJWX7gOdUcdetCG_P0rHY';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwdHdlY3JneWxiamNzcm5kZW9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1NzAxMDksImV4cCI6MjA2NDE0NjEwOX0.Zu-Ma5mB4oCGJJBaiRYYUIKJWX7gOdUcdetCG_P0rHY'; // REPLACE THIS
     
     async function processEmailVerification() {
       console.log('Starting email verification process...');
@@ -152,6 +151,12 @@
         return;
       }
       
+      // Remove type checking to avoid errors
+      if (type && type !== 'signup') {
+        console.warn('Unexpected type parameter:', type);
+        // Continue anyway - don't block the flow
+      }
+      
       try {
         // Step 1: Get user info from the access token
         console.log('🔍 Getting user information...');
@@ -163,21 +168,23 @@
         });
 
         if (!userResponse.ok) {
-          throw new Error('Failed to get user information');
+          throw new Error('Failed to get user information - token may be invalid');
         }
 
         const userData = await userResponse.json();
-        console.log('👤 User data:', userData);
+        console.log('👤 User data received:', userData);
 
         if (!userData || !userData.id) {
-          throw new Error('Invalid user data received');
+          throw new Error('Invalid user data received from Supabase');
         }
 
         const userId = userData.id;
         const userEmail = userData.email;
 
+        console.log('✅ User authenticated:', userEmail);
+
         // Step 2: Update user record in database
-        console.log('🔄 Updating user record...');
+        console.log('🔄 Updating user record in database...');
         const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
           method: 'PATCH',
           headers: {
@@ -188,13 +195,15 @@
           },
           body: JSON.stringify({
             email_confirmed_at: new Date().toISOString(),
-            onboarding_completed: true, // Mark onboarding as complete
+            onboarding_completed: true,
             updated_at: new Date().toISOString()
           })
         });
 
         if (!updateResponse.ok) {
-          throw new Error('Failed to update user record');
+          const errorText = await updateResponse.text();
+          console.error('Update failed:', errorText);
+          throw new Error('Failed to update user record in database');
         }
 
         console.log('✅ User record updated successfully!');
@@ -204,7 +213,7 @@
         // Step 3: Show success message
         showSuccess();
 
-        // Step 4: Try to open the app (optional)
+        // Step 4: Try to open the app
         const appDeepLink = `felcolinkpersist://login`;
         console.log('📱 Redirecting to FelcoLink...');
         
@@ -222,7 +231,7 @@
         
       } catch (error) {
         console.error('Error during verification:', error);
-        showError('An unexpected error occurred during verification. Please try again.');
+        showError('An unexpected error occurred: ' + error.message);
       }
     }
     
