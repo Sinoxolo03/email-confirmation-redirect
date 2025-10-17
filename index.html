@@ -72,7 +72,7 @@
 
       try {
         // Call your Supabase Edge Function
-        const res = await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
+        const res = await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/email_verification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accessToken })
