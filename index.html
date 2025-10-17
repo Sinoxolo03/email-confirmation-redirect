@@ -55,27 +55,33 @@
 
   <script>
     async function processEmailVerification() {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const type = params.get("type");
-      const email = params.get("email") || "nzolodaka@gmail.com"; 
+const hash = window.location.hash.substring(1);
+const params = new URLSearchParams(hash);
+const type = params.get("type");
+const email = params.get("email") || "nzolodaka@gmail.com";
+const access_token = params.get("access_token");
 
-      if (type !== "signup") {
-        showError("Invalid verification type");
-        return;
-      }
+// Extract user_id from access_token (JWT)
+let user_id = null;
+if (access_token) {
+  try {
+    const payload = JSON.parse(atob(access_token.split('.')[1]));
+    user_id = payload.sub; 
+  } catch (e) {
+    console.error("Error extracting user_id from token:", e);
+  }
+}
 
-      // Step 1: Record the verification in Supabase
-      try {
-        await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-      } catch (e) {
-        console.error("Error logging verification:", e);
-      }
-
+// Step 1: Record the verification in Supabase
+try {
+  await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, user_id }), 
+  });
+} catch (e) {
+  console.error("Error logging verification:", e);
+}
       // Step 2: Redirect to the app
       showSuccess();
       setTimeout(() => {
