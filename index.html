@@ -6,53 +6,34 @@
   <title>Email Verification - FelcoLink</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: Arial, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       text-align: center;
     }
     .container {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,0.1);
       padding: 2rem;
       border-radius: 1rem;
       backdrop-filter: blur(10px);
+      width: 90%;
       max-width: 500px;
-      width: 100%;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid rgba(255, 255, 255, 0.3);
+      border: 4px solid rgba(255,255,255,0.3);
       border-top: 4px solid white;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin: 20px auto;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .success, .error {
-      display: none;
-      padding: 1.5rem;
-      border-radius: 8px;
-      margin: 1rem 0;
-    }
-    .success {
-      background: rgba(76, 175, 80, 0.2);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-    }
-    .error {
-      background: rgba(244, 67, 54, 0.2);
-      border: 1px solid rgba(244, 67, 54, 0.3);
-    }
+    @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -62,96 +43,62 @@
       <p>Please wait while we verify your email address...</p>
       <div class="spinner"></div>
     </div>
-    <div id="success" class="success">
+    <div id="success" style="display:none;">
       <h2>✅ Email Verified Successfully!</h2>
-      <p>Your account is now active. Redirecting to FelcoLink...</p>
+      <p>Redirecting to FelcoLink...</p>
     </div>
-    <div id="error" class="error">
+    <div id="error" style="display:none;">
       <h2>❌ Verification Failed</h2>
-      <p id="errorMessage">There was an issue verifying your email.</p>
+      <p id="errorMessage"></p>
     </div>
   </div>
 
-  <script type="module">
-    import { supabase } from './supabaseClient.js';
-
-    function showLoading() {
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('success').style.display = 'none';
-      document.getElementById('error').style.display = 'none';
-    }
-
-    function showSuccess() {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('success').style.display = 'block';
-      document.getElementById('error').style.display = 'none';
-    }
-
-    function showError(message) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('success').style.display = 'none';
-      document.getElementById('error').style.display = 'block';
-      document.getElementById('errorMessage').textContent = message;
-    }
-
+  <script>
     async function processEmailVerification() {
-      console.log('Starting email verification...');
-      const url = new URL(window.location.href);
-      const hashParams = new URLSearchParams(url.hash.substring(1));
-
-      const access_token = hashParams.get('access_token');
-      const refresh_token = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
-
-      if (!access_token || !refresh_token) {
-        showError('Invalid verification link or missing tokens.');
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const type = params.get("type");
+      const email = params.get("email") || "nzolodaka@gmail.com"; 
+      if (type !== "signup") {
+        showError("Invalid verification type");
         return;
       }
 
+      // Step 1: Record the verification in Supabase
       try {
-        // Step 1: Log user in temporarily
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token,
-          refresh_token
+        await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
         });
-
-        if (sessionError || !sessionData?.session) {
-          throw new Error('Failed to set session');
-        }
-
-        console.log('✅ Session restored:', sessionData.session.user.email);
-        const user = sessionData.session.user;
-
-        // Step 2: Record verification in your custom table
-        const { error: insertError } = await supabase
-          .from('email_verifications')
-          .upsert([
-            {
-              user_id: user.id,
-              user_email: user.email,
-              verified_at: new Date().toISOString(),
-              onboarding_completed: true
-            }
-          ]);
-
-        if (insertError) throw insertError;
-
-        console.log('✅ Verification recorded successfully');
-        showSuccess();
-
-        // Step 3: Redirect after success
-        setTimeout(() => {
-          window.location.href = 'felcolinkpersist://login';
-        }, 3000);
-
-      } catch (err) {
-        console.error('❌ Verification error:', err);
-        showError('Verification failed: ' + err.message);
+      } catch (e) {
+        console.error("Error logging verification:", e);
       }
+
+      // Step 2: Redirect to the app
+      showSuccess();
+      setTimeout(() => {
+        window.location.href = `felcolinkpersist://login`;
+      }, 2500);
+    }
+
+    function showLoading() {
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("success").style.display = "none";
+      document.getElementById("error").style.display = "none";
+    }
+    function showSuccess() {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("success").style.display = "block";
+    }
+    function showError(msg) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("error").style.display = "block";
+      document.getElementById("errorMessage").innerText = msg;
     }
 
     showLoading();
-    window.addEventListener('load', processEmailVerification);
+    window.addEventListener("load", processEmailVerification);
   </script>
 </body>
 </html>
