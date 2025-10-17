@@ -57,29 +57,42 @@
     async function processEmailVerification() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
+      const accessToken = params.get("access_token");
       const type = params.get("type");
-      const email = params.get("email") || "nzolodaka@gmail.com"; 
+
+      if (!accessToken) {
+        showError("Missing access token in the verification link");
+        return;
+      }
+
       if (type !== "signup") {
         showError("Invalid verification type");
         return;
       }
 
-      // Step 1: Record the verification in Supabase
       try {
-        await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
+        // Call your Supabase Edge Function
+        const res = await fetch("https://wptwecrgylbjcsrndeob.supabase.co/functions/v1/record_verification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ accessToken })
         });
-      } catch (e) {
-        console.error("Error logging verification:", e);
-      }
 
-      // Step 2: Redirect to the app
-      showSuccess();
-      setTimeout(() => {
-        window.location.href = `felcolinkpersist://login`;
-      }, 2500);
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || "Verification failed");
+        }
+
+        // Success → redirect to app/login
+        showSuccess();
+        setTimeout(() => {
+          window.location.href = `felcolinkpersist://login`;
+        }, 2500);
+
+      } catch (err) {
+        console.error("Verification error:", err);
+        showError(err.message);
+      }
     }
 
     function showLoading() {
